@@ -15,9 +15,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Error in {request.url.path}: {str(exc)}\n{stack_trace}")
 
     response = error_response(
-        error={
+        message=str(exc),
+        data={
             "type": exc.__class__.__name__,
-            "message": str(exc),
+            "stack_trace": stack_trace,
         },
     )
 

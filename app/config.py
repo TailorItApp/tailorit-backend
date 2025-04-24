@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = PROJECT_NAME
     LOG_LEVEL: str = "INFO"
     PYTHON_ENV: str = "dev"
+    SUPABASE_JWT_SECRET: str
+    SUPABASE_JWT_AUDIENCE: str
 
     class Config:
         env_file = ".env"
