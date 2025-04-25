@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -23,6 +23,7 @@ class FolderInDB(FolderBase):
     user_id: UUID
     created_at: datetime
     updated_at: datetime
+    subfolders: List["FolderInDB"] = []
 
     class Config:
         from_attributes = True

@@ -259,6 +259,27 @@ class SupabasePostgres:
             logger.error(f"Error deleting file {file_id}: {str(e)}")
             raise DatabaseError("Error deleting file", details={"error": str(e)})
 
+    def get_all_folders_recursive(
+        self, user_id: str, parent_id: Optional[UUID] = None
+    ) -> List[Folder]:
+        try:
+            # Get folders at current level
+            folders = self.get_folders(user_id, parent_id)
+
+            # For each folder, get its subfolders recursively
+            for folder in folders:
+                subfolders = self.get_all_folders_recursive(user_id, folder.id)
+                folder.subfolders = subfolders
+
+            return folders
+        except Exception as e:
+            logger.error(
+                f"Error fetching folders recursively for user {user_id}: {str(e)}"
+            )
+            raise DatabaseError(
+                "Error fetching folders recursively", details={"error": str(e)}
+            )
+
 
 def get_postgres() -> SupabasePostgres:
     return SupabasePostgres()
