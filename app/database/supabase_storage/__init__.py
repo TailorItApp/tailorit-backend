@@ -1,7 +1,6 @@
 # app/database/supabase_storage/__init__.py
 
 import os
-import time
 from typing import Optional
 from uuid import UUID
 

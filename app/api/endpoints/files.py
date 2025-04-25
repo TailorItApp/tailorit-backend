@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from app.database.supabase_postgres import SupabasePostgres, get_postgres
 from app.database.supabase_storage import SupabaseStorage, get_storage
-from app.models.file import FileCreate, FileModel, FileUpdate
+from app.models.file import FileCreate, FileUpdate
 from app.utils.auth import verify_jwt
 from app.utils.exceptions import DatabaseError, NotFoundError, StorageError
 from app.utils.response import success_response
@@ -81,7 +81,7 @@ async def download_file(
                 "File not found or unauthorized", details={"file_id": str(file_id)}
             )
 
-        file_content = await storage.download_file(file["storage_path"])
+        file_content = await storage.download_file(file.storage_path)
         return success_response(
             message="File downloaded successfully", data={"content": file_content}
         )
@@ -106,7 +106,7 @@ async def get_file_url(
                 "File not found or unauthorized", details={"file_id": str(file_id)}
             )
 
-        url = await storage.get_file_url(file["storage_path"], expires_in)
+        url = await storage.get_file_url(file.storage_path, expires_in)
         return success_response(
             message="File URL generated successfully", data={"url": url}
         )
@@ -116,7 +116,7 @@ async def get_file_url(
         raise StorageError("Error generating file URL", details={"error": str(e)})
 
 
-@router.put("/{file_id}", response_model=FileModel)
+@router.put("/{file_id}")
 async def update_file(
     file_id: UUID,
     file_update: FileUpdate = Body(...),
@@ -151,7 +151,7 @@ async def delete_file(
                 "File not found or unauthorized", details={"file_id": str(file_id)}
             )
 
-        await storage.delete_file(file["storage_path"])
+        await storage.delete_file(file.storage_path)
         postgres.delete_file(file_id, str(user["sub"]))
         return success_response(message="File deleted successfully", data=None)
     except NotFoundError:
