@@ -1,4 +1,4 @@
-import os
+# app/utils/auth.py
 
 import jwt
 from fastapi import Depends, HTTPException

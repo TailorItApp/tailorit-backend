@@ -1,4 +1,4 @@
-# backend/app/config.py
+# app/config.py
 
 from pydantic_settings import BaseSettings
 
@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     PYTHON_ENV: str = "dev"
     SUPABASE_JWT_SECRET: str
     SUPABASE_JWT_AUDIENCE: str
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
+    SUPABASE_STORAGE_BUCKET: str
 
     class Config:
         env_file = ".env"

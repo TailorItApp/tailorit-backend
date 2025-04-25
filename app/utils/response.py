@@ -1,8 +1,7 @@
-# backend/app/utils/response.py
+# app/utils/response.py
 
 from typing import Any, Optional
 
-from fastapi import Response
 from pydantic import BaseModel, Field
 
 
@@ -17,22 +16,14 @@ class StandardResponse(BaseModel):
 
 
 def success_response(
-    message: Optional[str] = "Success",
-    code: int = 200,
-    response: Optional[Response] = None,
+    message: str = "Success",
     data: Optional[Any] = None,
 ) -> StandardResponse:
-    if response:
-        response.status_code = code
     return StandardResponse(status=True, message=message, data=data)
 
 
 def error_response(
-    message: Optional[str] = "An error occurred",
-    code: int = 500,
-    response: Optional[Response] = None,
+    message: str = "An error occurred",
     data: Optional[Any] = None,
 ) -> StandardResponse:
-    if response:
-        response.status_code = code
     return StandardResponse(status=False, message=message, data=data)

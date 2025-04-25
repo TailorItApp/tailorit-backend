@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi import Request as ServerRequest
 from fastapi.responses import FileResponse
 
-from app.utils.auth_utils import verify_jwt
+from app.utils.auth import verify_jwt
 from app.utils.logger import logger
 from app.utils.response import success_response
 
