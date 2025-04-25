@@ -20,20 +20,19 @@ class GetFilesRequest(BaseModel):
     folder_id: Optional[UUID] = None
 
 
-@router.get("", response_model=list[FileModel])
+@router.get("", status_code=200)
 async def get_files(
-    request: GetFilesRequest = Body(...),
     user: dict = Depends(verify_jwt),
     postgres: SupabasePostgres = Depends(get_postgres),
 ):
     try:
-        files = postgres.get_files(str(user["sub"]), request.folder_id)
+        files = postgres.get_files(str(user["sub"]))
         return success_response(message="Files fetched successfully", data=files)
     except Exception as e:
         raise DatabaseError("Error fetching files", details={"error": str(e)})
 
 
-@router.post("", response_model=FileModel, status_code=201)
+@router.post("", status_code=201)
 async def create_file(
     file: UploadFile = File(...),
     folder_id: Optional[UUID] = Form(None),
@@ -42,6 +41,11 @@ async def create_file(
     storage: SupabaseStorage = Depends(get_storage),
 ):
     try:
+        if not file.filename.lower().endswith(".tex"):
+            raise StorageError(
+                "Invalid file type", details={"error": "Only .tex files are allowed"}
+            )
+
         file_content = await file.read()
 
         storage_path = await storage.upload_file(
@@ -52,11 +56,12 @@ async def create_file(
         )
 
         file_data = FileCreate(
-            name=file.filename, storage_path=storage_path, folder_id=folder_id
-        ).model_dump()
+            name=file.filename,
+            storage_path=storage_path,
+            folder_id=str(folder_id) if folder_id else None,
+        )
 
-        file_data["user_id"] = str(user["sub"])
-        created_file = postgres.create_file(file_data)
+        created_file = postgres.create_file(file_data, str(user["sub"]))
         return success_response(message="File created successfully", data=created_file)
     except Exception as e:
         raise StorageError("Error processing file", details={"error": str(e)})

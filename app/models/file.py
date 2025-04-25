@@ -10,6 +10,12 @@ class FileBase(BaseModel):
     storage_path: str
     folder_id: Optional[UUID] = None
 
+    def model_dump(self, **kwargs):
+        data = super().model_dump(**kwargs)
+        if data.get("folder_id"):
+            data["folder_id"] = str(data["folder_id"])
+        return data
+
 
 class FileCreate(FileBase):
     pass
