@@ -14,9 +14,7 @@ async def get_filesystem(
     postgres: SupabasePostgres = Depends(get_postgres),
 ):
     try:
-        folders = postgres.get_all_folders_recursive(str(user["sub"]))
-        files = postgres.get_files(str(user["sub"]))
-        filesystem = {"folders": folders, "files": files}
+        filesystem = postgres.get_filesystem_tree(str(user["sub"]))
         return success_response(
             message="Filesystem fetched successfully", data=filesystem
         )

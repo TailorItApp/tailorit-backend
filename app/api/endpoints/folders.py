@@ -3,8 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, Query
 
 from app.database.supabase_postgres import SupabasePostgres, get_postgres
 from app.models.folder import FolderCreate, FolderUpdate
@@ -15,17 +14,17 @@ from app.utils.response import success_response
 router = APIRouter()
 
 
-class GetFoldersRequest(BaseModel):
-    parent_id: Optional[UUID] = None
-
-
 @router.get("", status_code=200)
 async def get_folders(
+    parent_id: Optional[UUID] = Query(
+        None,
+        description="Only return folders whose parent_id matches this UUID; omit for root-level",
+    ),
     user: dict = Depends(verify_jwt),
     postgres: SupabasePostgres = Depends(get_postgres),
 ):
     try:
-        folders = postgres.get_folders(str(user["sub"]))
+        folders = postgres.get_folders(str(user["sub"]), parent_id)
         return success_response(message="Folders fetched successfully", data=folders)
     except Exception as e:
         raise DatabaseError("Error fetching folders", details={"error": str(e)})

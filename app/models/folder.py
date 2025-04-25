@@ -16,6 +16,7 @@ class FolderCreate(FolderBase):
 
 class FolderUpdate(FolderBase):
     name: Optional[str] = None
+    parent_id: Optional[UUID] = None
 
 
 class FolderInDB(FolderBase):

@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 class FileBase(BaseModel):
     name: str
-    storage_path: str
     folder_id: Optional[UUID] = None
 
     def model_dump(self, **kwargs):
@@ -18,18 +17,18 @@ class FileBase(BaseModel):
 
 
 class FileCreate(FileBase):
-    pass
+    storage_path: str
 
 
 class FileUpdate(FileBase):
     name: Optional[str] = None
-    storage_path: Optional[str] = None
     folder_id: Optional[UUID] = None
 
 
 class FileInDB(FileBase):
     id: UUID
     user_id: UUID
+    storage_path: str
     created_at: datetime
     updated_at: datetime
 

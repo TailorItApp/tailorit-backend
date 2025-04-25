@@ -1,5 +1,6 @@
 # app/database/supabase_postgres/__init__.py
 
+from collections import deque
 from typing import List, Optional
 from uuid import UUID
 
@@ -19,15 +20,23 @@ class SupabasePostgres:
     ) -> List[Folder]:
         try:
             query = self.supabase.table("folders").select("*").eq("user_id", user_id)
-            if parent_id:
-                query = query.eq("parent_id", str(parent_id))
+
+            if parent_id is None:
+                query = query.is_("parent_id", None)
             else:
-                query = query.is_("parent_id", "null")
-            folders = [Folder.model_validate(folder) for folder in query.execute().data]
-            logger.debug(f"Retrieved {len(folders)} folders for user {user_id}")
+                query = query.eq("parent_id", str(parent_id))
+
+            response = query.execute()
+            rows = response.data or []
+            folders = [Folder.model_validate(r) for r in rows]
+
+            logger.debug(
+                f"Retrieved {len(folders)} folders for user {user_id}. Parent ID: {parent_id}"
+            )
             return folders
+
         except Exception as e:
-            logger.error(f"Error fetching folders for user {user_id}: {str(e)}")
+            logger.error(f"Error fetching folders for user {user_id}: {e}")
             raise DatabaseError("Error fetching folders", details={"error": str(e)})
 
     def folder_exists(
@@ -81,6 +90,8 @@ class SupabasePostgres:
     ) -> Optional[Folder]:
         try:
             update_data = folder_update.model_dump(exclude_unset=True)
+            if "parent_id" in update_data and update_data["parent_id"] is not None:
+                update_data["parent_id"] = str(update_data["parent_id"])
             result = (
                 self.supabase.table("folders")
                 .update(update_data)
@@ -134,8 +145,6 @@ class SupabasePostgres:
             query = self.supabase.table("files").select("*").eq("user_id", user_id)
             if folder_id:
                 query = query.eq("folder_id", str(folder_id))
-            else:
-                query = query.is_("folder_id", "null")
             files = [FileModel.model_validate(file) for file in query.execute().data]
             logger.debug(f"Retrieved {len(files)} files for user {user_id}")
             return files
@@ -259,26 +268,47 @@ class SupabasePostgres:
             logger.error(f"Error deleting file {file_id}: {str(e)}")
             raise DatabaseError("Error deleting file", details={"error": str(e)})
 
-    def get_all_folders_recursive(
-        self, user_id: str, parent_id: Optional[UUID] = None
-    ) -> List[Folder]:
-        try:
-            # Get folders at current level
-            folders = self.get_folders(user_id, parent_id)
+    def get_all_folders_recursive(self, user_id: str) -> List[Folder]:
+        all_folders: List[Folder] = []
+        queue = deque([None])
 
-            # For each folder, get its subfolders recursively
-            for folder in folders:
-                subfolders = self.get_all_folders_recursive(user_id, folder.id)
-                folder.subfolders = subfolders
+        while queue:
+            parent_id = queue.popleft()
+            children = self.get_folders(user_id, parent_id)
+            all_folders.extend(children)
+            queue.extend(child.id for child in children)
 
-            return folders
-        except Exception as e:
-            logger.error(
-                f"Error fetching folders recursively for user {user_id}: {str(e)}"
-            )
-            raise DatabaseError(
-                "Error fetching folders recursively", details={"error": str(e)}
-            )
+        return all_folders
+
+    def get_filesystem_tree(self, user_id: str) -> dict:
+        all_folders = self.get_all_folders_recursive(user_id)
+        all_files = self.get_files(user_id)
+
+        files_by_folder = {}
+        for f in all_files:
+            key = str(f.folder_id) if f.folder_id else "root"
+            files_by_folder.setdefault(key, []).append(f)
+
+        folder_dicts = {}
+        for folder in all_folders:
+            folder_dicts[str(folder.id)] = {
+                **folder.model_dump(),
+                "files": files_by_folder.get(str(folder.id), []),
+                "subfolders": [],
+            }
+
+        tree = {"folders": [], "files": files_by_folder.get("root", [])}
+
+        for folder in all_folders:
+            d = folder_dicts[str(folder.id)]
+            if folder.parent_id:
+                parent = folder_dicts.get(str(folder.parent_id))
+                if parent:
+                    parent["subfolders"].append(d)
+            else:
+                tree["folders"].append(d)
+
+        return tree
 
 
 def get_postgres() -> SupabasePostgres:
