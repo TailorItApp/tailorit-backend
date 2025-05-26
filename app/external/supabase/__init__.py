@@ -1,39 +1,27 @@
 # app/external/supabase/__init__.py
 
+from functools import lru_cache
+
 from app.config import settings
 from app.utils.logger import logger
 from supabase import Client, create_client
 
 
-class SupabaseClient:
-    _instance = None
-    _client = None
+@lru_cache()
+def get_supabase_client() -> Client:
+    """
+    Cached dependency that creates a Supabase client.
+    Uses lru_cache to ensure we only create one client per process,
+    but still allows for dependency injection and testing.
+    """
+    try:
+        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+            logger.error("Supabase URL and Key must be configured in settings")
+            raise ValueError("Supabase URL and Key must be configured in settings")
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(SupabaseClient, cls).__new__(cls)
-        return cls._instance
-
-    def __init__(self):
-        if self._client is None:
-            try:
-                if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
-                    logger.error("Supabase URL and Key must be configured in settings")
-                    raise ValueError(
-                        "Supabase URL and Key must be configured in settings"
-                    )
-
-                self._client = create_client(
-                    settings.SUPABASE_URL, settings.SUPABASE_KEY
-                )
-                logger.info("Successfully initialized Supabase client")
-            except Exception as e:
-                logger.error(f"Failed to initialize Supabase client: {str(e)}")
-                raise
-
-    @property
-    def client(self) -> Client:
-        return self._client
-
-
-supabase = SupabaseClient().client
+        client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+        logger.info("Successfully created Supabase client")
+        return client
+    except Exception as e:
+        logger.error(f"Failed to create Supabase client: {str(e)}")
+        raise

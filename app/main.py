@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.router import api_router
+from app.api.v1.router import api_router as v1_api_router
 from app.config import settings
 from app.utils.exception_handlers import register_exception_handlers
 from app.utils.logger import logger
@@ -25,7 +25,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(api_router, prefix="/api/v1")
+    app.include_router(v1_api_router, prefix="/api/v1")
     register_exception_handlers(app)
 
     return app

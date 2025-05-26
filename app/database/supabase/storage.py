@@ -1,18 +1,16 @@
-# app/database/supabase_storage/__init__.py
-
 import os
 from typing import Optional
 from uuid import UUID
 
 from app.config import settings
-from app.external.supabase import supabase
+from app.external.supabase import get_supabase_client
 from app.utils.exceptions import StorageError
 from app.utils.logger import logger
 
 
 class SupabaseStorage:
     def __init__(self):
-        self.supabase = supabase
+        self.supabase = get_supabase_client()
         self.bucket_name = settings.SUPABASE_STORAGE_BUCKET
         self._ensure_bucket_exists()
 
@@ -40,6 +38,24 @@ class SupabaseStorage:
             logger.error(f"Error checking file existence in bucket: {str(e)}")
             return False
 
+    def _get_storage_path(
+        self, file_path: str, user_id: UUID, folder_id: Optional[UUID] = None
+    ) -> str:
+        storage_path = f"{user_id}/"
+        if folder_id:
+            storage_path += f"{folder_id}/"
+        storage_path += os.path.basename(file_path)
+        return storage_path
+
+    def _validate_file_type(self, file_path: str) -> None:
+        file_extension = os.path.splitext(file_path)[1].lower()
+        if file_extension != ".tex":
+            logger.warning(f"Invalid file type attempted: {file_path}")
+            raise StorageError(
+                "Invalid file type",
+                details={"error": "Only .tex files are allowed"},
+            )
+
     async def upload_file(
         self,
         file_path: str,
@@ -48,20 +64,8 @@ class SupabaseStorage:
         folder_id: Optional[UUID] = None,
     ) -> str:
         try:
-            file_extension = os.path.splitext(file_path)[1].lower()
-            if file_extension != ".tex":
-                logger.warning(f"Invalid file type attempted: {file_path}")
-                raise StorageError(
-                    "Invalid file type",
-                    details={"error": "Only .tex files are allowed"},
-                )
-
-            storage_path = f"{user_id}/"
-            if folder_id:
-                storage_path += f"{folder_id}/"
-
-            # Extract the file name from the file path and add it to the storage path
-            storage_path += os.path.basename(file_path)
+            self._validate_file_type(file_path)
+            storage_path = self._get_storage_path(file_path, user_id, folder_id)
 
             if self._file_exists_in_bucket(storage_path):
                 logger.warning(f"Duplicate file upload attempted: {storage_path}")
@@ -113,7 +117,3 @@ class SupabaseStorage:
         except Exception as e:
             logger.error(f"Error generating URL for file {storage_path}: {str(e)}")
             raise StorageError("Error generating file URL", details={"error": str(e)})
-
-
-def get_storage() -> SupabaseStorage:
-    return SupabaseStorage()
