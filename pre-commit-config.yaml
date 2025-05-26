@@ -1,8 +1,0 @@
-repos:
-  - repo: local
-    hooks:
-      - id: just-write
-        name: Format & lint with just
-        entry: just write
-        language: system
-        types: [python]

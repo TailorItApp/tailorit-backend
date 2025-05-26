@@ -5,7 +5,7 @@ TailorIt's backend repository ✨.
 ## Development Environment Setup
 
 ```bash
-uv install
+uv sync
 fastapi dev app/main.py
 ```
 
