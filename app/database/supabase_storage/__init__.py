@@ -19,7 +19,7 @@ class SupabaseStorage:
     def _ensure_bucket_exists(self):
         try:
             self.supabase.storage.get_bucket(self.bucket_name)
-            logger.info(f"Supabase storage bucket '{self.bucket_name}' initialized")
+            logger.debug(f"Supabase storage bucket '{self.bucket_name}' initialized")
         except Exception as e:
             logger.error(f"Bucket {self.bucket_name} does not exist: {str(e)}")
             raise StorageError(
@@ -59,6 +59,8 @@ class SupabaseStorage:
             storage_path = f"{user_id}/"
             if folder_id:
                 storage_path += f"{folder_id}/"
+
+            # Extract the file name from the file path and add it to the storage path
             storage_path += os.path.basename(file_path)
 
             if self._file_exists_in_bucket(storage_path):
@@ -73,6 +75,7 @@ class SupabaseStorage:
                 file_content,
                 {"content-type": "application/x-tex", "cache-control": "no-cache"},
             )
+
             logger.info(f"Successfully uploaded file: {storage_path}")
             return storage_path
         except StorageError:
